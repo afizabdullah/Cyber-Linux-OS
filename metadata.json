@@ -1,0 +1,6 @@
+{
+  "name": "Cyber Linux OS",
+  "description": "نظام تشغيل لوحة تحكم شبيه بلينكس",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
