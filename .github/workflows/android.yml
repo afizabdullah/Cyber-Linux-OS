@@ -51,17 +51,38 @@ jobs:
           echo "يتم الآن بناء ملف التنفيذ APK..."
           gradle assembleRelease
 
-      # توقيع التطبيق
+      # توقيع التطبيق باستخدام بيئة أندرويد الافتراضية
       - name: توقيع التطبيق باستخدام المفاتيح الآمنة
-        uses: r0adkll/sign-android-release@v1
         id: sign_app
-        with:
-          releaseDirectory: app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
-          alias: ${{ secrets.ANDROID_KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          buildToolsVersion: 34.0.0
+        run: |
+          echo "جاري تجهيز مفتاح التوقيع..."
+          echo "${{ secrets.ANDROID_SIGNING_KEY }}" | base64 --decode > keystore.jks
+          
+          # إيجاد ملف APK المبني
+          APK_FILE=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          
+          # إيجاد مسار أحدث إصدار من أدوات أندرويد
+          BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/* | tail -1)
+          
+          # تحديد مسارات الملفات الجديدة
+          ALIGNED_APK="${APK_FILE%-unsigned.apk}-aligned.apk"
+          SIGNED_APK="${APK_FILE%-unsigned.apk}-signed.apk"
+          
+          echo "جاري محاذاة التطبيق (Zipalign)..."
+          $BUILD_TOOLS_DIR/zipalign -v -p 4 "$APK_FILE" "$ALIGNED_APK"
+          
+          echo "جاري توقيع التطبيق النهائي (Apksigner)..."
+          $BUILD_TOOLS_DIR/apksigner sign --ks keystore.jks --ks-key-alias "${{ secrets.ANDROID_KEY_ALIAS }}" --ks-pass pass:"${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" --key-pass pass:"${{ secrets.ANDROID_KEY_PASSWORD }}" --out "$SIGNED_APK" "$ALIGNED_APK"
+          
+          # تأكيد نجاح التوقيع
+          $BUILD_TOOLS_DIR/apksigner verify "$SIGNED_APK"
+          echo "تم توقيع التطبيق بنجاح."
+          
+          # أمْنياً، نقوم بحذف الشهادة ومفتاح التوقيع
+          rm keystore.jks
+          
+          # تصدير المسار كمتغير لخطوة الحفظ
+          echo "signedReleaseFile=$SIGNED_APK" >> $GITHUB_OUTPUT
 
       # حفظ الـ APK
       - name: حفظ التطبيق الموقع (APK) كمُخرج نهائي
