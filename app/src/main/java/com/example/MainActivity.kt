@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.runtime.CompositionLocalProvider
 import com.example.ui.theme.CyberLinuxTheme
+import com.example.ui.desktop.DesktopScreen
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -24,7 +25,7 @@ class MainActivity : ComponentActivity() {
       CyberLinuxTheme {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
           Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            DashboardScreen(modifier = Modifier.padding(innerPadding))
+            DesktopScreen()
           }
         }
       }
@@ -32,13 +33,8 @@ class MainActivity : ComponentActivity() {
   }
 }
 
-@Composable
-fun DashboardScreen(modifier: Modifier = Modifier) {
-  Text(text = "مرحباً بك في سايبر لينكس!", modifier = modifier)
-}
-
 @Preview(showBackground = true)
 @Composable
 fun DashboardPreview() {
-  CyberLinuxTheme { DashboardScreen() }
+  CyberLinuxTheme { DesktopScreen() }
 }
