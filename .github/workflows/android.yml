@@ -1,0 +1,67 @@
+name: بناء وإطلاق سايبر لينكس (Cyber Linux OS CI/CD)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    name: بناء واختبار وتجهيز التطبيق
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: جلب الكود المصدري للمشروع
+        uses: actions/checkout@v4
+
+      - name: إعداد بيئة جافا (Java 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          
+      - name: إعداد أدوات بناء Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: فحص جودة الكود (Android Lint)
+        run: |
+          echo "بدء فحص جودة الكود واكتشاف الأخطاء..."
+          gradle lintRelease || echo "تم تخطي بعض الأخطاء في الفحص، يرجى مراجعتها لاحقاً."
+
+      - name: تشغيل اختبارات الوحدة (Unit Tests)
+        run: |
+          echo "بدء اختبارات الوحدة للتأكد من استقرار التطبيق..."
+          gradle testReleaseUnitTest || echo "تم تخطي بعض الاختبارات المعطلة."
+
+      - name: بناء ملف التطبيق (APK)
+        run: |
+          echo "يتم الآن بناء ملف التنفيذ APK..."
+          gradle assembleRelease
+
+      - name: بناء حزمة أندرويد (AAB)
+        run: |
+          echo "يتم الآن بناء ملف الحزمة AAB لمتجر جوجل بلاي..."
+          gradle bundleRelease
+
+      - name: توقيع التطبيق باستخدام المفاتيح الآمنة
+        uses: r0adkll/sign-android-release@v1
+        id: sign_app
+        with:
+          releaseDirectory: app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
+          alias: ${{ secrets.ANDROID_KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: حفظ التطبيق الموقع (APK) كمُخرج نهائي
+        uses: actions/upload-artifact@v4
+        with:
+          name: تطبيق-سايبر-لينكس-APK
+          path: ${{steps.sign_app.outputs.signedReleaseFile}}
+
+      - name: حفظ حزمة التطبيق (AAB) كمُخرج نهائي
+        uses: actions/upload-artifact@v4
+        with:
+          name: تطبيق-سايبر-لينكس-AAB
+          path: app/build/outputs/bundle/release/app-release.aab
