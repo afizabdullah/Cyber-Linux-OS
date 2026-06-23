@@ -51,12 +51,6 @@ jobs:
           echo "يتم الآن بناء ملف التنفيذ APK..."
           gradle assembleRelease
 
-      # بناء حزمة التطبيق
-      - name: بناء حزمة أندرويد (AAB)
-        run: |
-          echo "يتم الآن بناء ملف الحزمة AAB لمتجر جوجل بلاي..."
-          gradle bundleRelease
-
       # توقيع التطبيق
       - name: توقيع التطبيق باستخدام المفاتيح الآمنة
         uses: r0adkll/sign-android-release@v1
@@ -74,10 +68,3 @@ jobs:
         with:
           name: تطبيق-سايبر-لينكس-APK
           path: ${{steps.sign_app.outputs.signedReleaseFile}}
-
-      # حفظ الـ AAB
-      - name: حفظ حزمة التطبيق (AAB) كمُخرج نهائي
-        uses: actions/upload-artifact@v4
-        with:
-          name: تطبيق-سايبر-لينكس-AAB
-          path: app/build/outputs/bundle/release/app-release.aab
