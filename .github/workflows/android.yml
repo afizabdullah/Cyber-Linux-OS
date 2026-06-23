@@ -51,10 +51,22 @@ jobs:
           echo "يتم الآن بناء ملف التنفيذ APK..."
           gradle assembleRelease
 
+      # حفظ التطبيق (APK) غير الموقع احتياطياً
+      - name: حفظ التطبيق غير الموقع (Unsigned APK)
+        uses: actions/upload-artifact@v4
+        with:
+          name: تطبيق-سايبر-لينكس-APK-غير-موقع
+          path: app/build/outputs/apk/release/*-unsigned.apk
+
       # توقيع التطبيق باستخدام بيئة أندرويد الافتراضية
       - name: توقيع التطبيق باستخدام المفاتيح الآمنة
         id: sign_app
         run: |
+          if [ -z "${{ secrets.ANDROID_SIGNING_KEY }}" ]; then
+            echo "لم يتم العثور على مفتاح التوقيع في Secrets. سيتم تخطي خطوة التوقيع (Tag number over 30 error workaround)."
+            exit 0
+          fi
+          
           echo "جاري تجهيز مفتاح التوقيع..."
           echo "${{ secrets.ANDROID_SIGNING_KEY }}" | base64 --decode > keystore.jks
           
@@ -84,9 +96,10 @@ jobs:
           # تصدير المسار كمتغير لخطوة الحفظ
           echo "signedReleaseFile=$SIGNED_APK" >> $GITHUB_OUTPUT
 
-      # حفظ الـ APK
+      # حفظ الـ APK الموقع
       - name: حفظ التطبيق الموقع (APK) كمُخرج نهائي
+        if: steps.sign_app.outputs.signedReleaseFile != ''
         uses: actions/upload-artifact@v4
         with:
-          name: تطبيق-سايبر-لينكس-APK
+          name: تطبيق-سايبر-لينكس-APK-موقع
           path: ${{steps.sign_app.outputs.signedReleaseFile}}
